@@ -28,8 +28,9 @@ const ReportList = () => {
       {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
       {reports.length === 0 && !error && <p style={{ textAlign: 'center' }}>No reports submitted yet.</p>}
 
-      {reports.map((r, i) => (
-        <div key={i} style={{
+      {reports.map((r, i) => {
+          console.log("📦 Report received from API:", r);
+       return ( <div key={i} style={{
           border: '1px solid #e1e1e1',
           padding: '1rem',
           marginBottom: '1rem',
@@ -37,13 +38,15 @@ const ReportList = () => {
           backgroundColor: '#fdfefe',
           boxShadow: '0 4px 10px rgba(0,0,0,0.06)'
         }}>
-          <p><strong>📝 Description:</strong> {r.description}</p>
-          <p><strong>📍 Location:</strong> {r.locationName}</p>
-          <p><strong>📌 Coordinates:</strong> {r.coordinates?.coordinates?.join(', ')}</p>
-          <p><strong>🧑 Reporter:</strong> {r.reporterName}</p>
-          <p><strong>📅 Time:</strong> {r.createdAt ? new Date(r.createdAt).toLocaleString() : 'N/A'}</p>
+        
+        <p><strong>📝 Report:</strong> {r.content}</p>
+  <p><strong>🧑 Reporter:</strong> {r.user_id}</p>
+  <p><strong>🖼️ Image URL:</strong> {r.image_url || 'N/A'}</p>
+  <p><strong>✅ Status:</strong> {r.verification_status}</p>
+  <p><strong>📅 Submitted:</strong> {r.created_at ? new Date(r.created_at).toLocaleString() : 'N/A'}</p>
         </div>
-      ))}
+       );
+})}
     </div>
   );
 };

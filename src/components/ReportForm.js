@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const ReportForm = () => {
   const [formData, setFormData] = useState({
     description: '',
-    locationName: '',
     latitude: '',
     longitude: '',
     reporterName: ''
   });
 
+  const [disasters, setDisasters] = useState([]);
+  const [selectedDisasterId, setSelectedDisasterId] = useState('');
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const baseURL = process.env.REACT_APP_API_BASE_URL;
+
+  // ✅ Load disasters from backend
+  useEffect(() => {
+    fetch(`${baseURL}/api/disasters`)
+      .then(res => res.json())
+      .then(data => setDisasters(data))
+      .catch(err => console.error('❌ Failed to load disasters:', err));
+  }, [baseURL]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -18,68 +28,91 @@ const ReportForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
 
-    const { description, locationName, latitude, longitude, reporterName } = formData;
+    const { description, latitude, longitude, reporterName } = formData;
+
+    if (!selectedDisasterId) {
+      setMessage('❌ Please select a disaster');
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const payload = {
-        description,
-        locationName,
-        coordinates: [parseFloat(longitude), parseFloat(latitude)],
-        reporterName
+        disaster_id: selectedDisasterId,
+        user_id: reporterName || 'guest',
+        content: description,
+        image_url: ''
       };
 
-      console.log('Submitting:', payload); // ✅ Debug log
-
-      const response = await fetch(`${baseURL}/report`, {
+      const response = await fetch(`${baseURL}/api/reports`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       const data = await response.json();
-      console.log('Response:', data); // ✅ Debug log
 
       if (response.ok) {
         setMessage('✅ Report submitted successfully!');
         setFormData({
           description: '',
-          locationName: '',
           latitude: '',
           longitude: '',
           reporterName: ''
         });
+        setSelectedDisasterId('');
       } else {
         setMessage(`❌ Error: ${data.message || 'Failed to submit report'}`);
       }
     } catch (error) {
-      console.error('❌ Fetch error:', error);
+      console.error('❌ Network error:', error);
       setMessage('❌ Network error or server not responding.');
     }
+
+    setSubmitting(false);
   };
 
   return (
     <div style={styles.container}>
       <h2>📋 Submit a Disaster Report</h2>
       <form onSubmit={handleSubmit} style={styles.form}>
+        <label>Select Disaster:</label>
+        <select
+          required
+          value={selectedDisasterId}
+          onChange={(e) => setSelectedDisasterId(e.target.value)}
+        >
+          <option value="">-- Choose Disaster --</option>
+          {disasters.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.title} ({d.location_name})
+            </option>
+          ))}
+        </select>
+
         <label>Description:</label>
-        <input type="text" name="description" placeholder="e.g. Flood in city" value={formData.description} onChange={handleChange} required />
-
-        <label>Location Name:</label>
-        <input type="text" name="locationName" placeholder="e.g. Patna, Bihar" value={formData.locationName} onChange={handleChange} required />
-
-        <label>Latitude:</label>
-        <input type="number" step="any" name="latitude" placeholder="e.g. 25.60" value={formData.latitude} onChange={handleChange} required />
-
-        <label>Longitude:</label>
-        <input type="number" step="any" name="longitude" placeholder="e.g. 85.15" value={formData.longitude} onChange={handleChange} required />
+        <input
+          type="text"
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          required
+        />
 
         <label>Your Name:</label>
-        <input type="text" name="reporterName" placeholder="e.g. Mahak" value={formData.reporterName} onChange={handleChange} required />
+        <input
+          type="text"
+          name="reporterName"
+          value={formData.reporterName}
+          onChange={handleChange}
+          required
+        />
 
-        <button type="submit">📨 Submit Report</button>
+        <button type="submit" disabled={submitting}>
+          {submitting ? 'Submitting...' : '📨 Submit Report'}
+        </button>
         <p>{message}</p>
       </form>
     </div>
